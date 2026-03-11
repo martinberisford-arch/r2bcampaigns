@@ -1,32 +1,37 @@
 # Roots2Branches Project Hub
 
-A production-ready, lean workspace for a small charity to plan projects, track dates, save resources, and capture impact stories.
+A warm, low-admin planning and impact workspace for a small community charity.
 
 ## Stack
 - React + TypeScript + Vite
 - React Router
-- Tailwind CSS v4
 - React Hook Form + Zod
 - TanStack Query
-- Supabase (Auth, Postgres, RLS)
+- Supabase (Auth, Postgres, Realtime, RLS)
 
-## Run
+## Navigation
+- Home
+- Projects
+- Calendar
+- Outcomes
+- Resources
+- Settings
+
+## Local setup
 ```bash
 npm install
+cp .env.example .env
 npm run dev
 ```
 
 ## Supabase setup
 1. Create a Supabase project.
-2. Apply `supabase/schema.sql`.
-3. Create profiles for users with role `admin` or `member`.
-4. Copy `.env.example` to `.env` and add URL + anon key.
+2. Run `supabase/schema.sql` in SQL editor.
+3. Optionally run `supabase/seed.sql` for demo content.
+4. Add Vercel env vars:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
 
-## Product scope (V1)
-- Project planning and status tracking
-- Calendar dates
-- Resource links
-- Impact story capture
-- Trustee/funder-ready overview cards
-
-No enterprise workflow, no heavy analytics, no complex permissions matrix.
+## Notes
+- If Supabase tables are missing or unavailable, list views fall back to in-repo mock data.
+- Realtime invalidation hook is scaffolded in `src/lib/supabase/realtime.ts`.
