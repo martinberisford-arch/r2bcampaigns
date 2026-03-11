@@ -1,19 +1,17 @@
-import { supabase } from '../../lib/supabase';
+import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 import type { Project } from '../../lib/types';
 import { mockProjects } from '../../lib/mockData';
 import type { ProjectInput } from '../../lib/schemas';
 
-const hasSupabase = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
-
 export async function listProjects(): Promise<Project[]> {
-  if (!hasSupabase) return mockProjects;
+  if (!isSupabaseConfigured || !supabase) return mockProjects;
   const { data, error } = await supabase.from('projects').select('*').is('archived_at', null).order('start_date', { ascending: false });
   if (error) throw error;
   return data as Project[];
 }
 
 export async function createProject(payload: ProjectInput): Promise<Project> {
-  if (!hasSupabase) {
+  if (!isSupabaseConfigured || !supabase) {
     const project: Project = {
       id: crypto.randomUUID(),
       ...payload,
