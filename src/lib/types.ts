@@ -2,6 +2,8 @@ export type Role = 'admin' | 'member';
 
 export type ProjectStatus = 'Idea' | 'Planned' | 'Active' | 'On Hold' | 'Complete';
 
+export const PROJECT_STATUSES = ['Idea', 'Planned', 'Active', 'On Hold', 'Complete'] as const;
+
 export type ProjectType =
   | 'Service Delivery'
   | 'Event'
@@ -14,6 +16,20 @@ export type ProjectType =
   | 'School Activity'
   | 'Family Support'
   | 'Other';
+
+export const PROJECT_TYPES = [
+  'Service Delivery',
+  'Event',
+  'Campaign',
+  'Fundraising',
+  'Volunteer Recruitment',
+  'Partnership',
+  'Training / Workshop',
+  'Awareness Activity',
+  'School Activity',
+  'Family Support',
+  'Other'
+] as const;
 
 export interface LinkItem {
   label: string;

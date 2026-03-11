@@ -1,12 +1,13 @@
 import { z } from 'zod';
+import { PROJECT_STATUSES, PROJECT_TYPES } from './types';
 
 const linkSchema = z.object({ label: z.string().min(1), url: z.string().url() });
 const actionSchema = z.object({ title: z.string().min(1), done: z.boolean() });
 
 export const projectSchema = z.object({
   title: z.string().min(3),
-  type: z.string().min(1),
-  status: z.string().min(1),
+  type: z.enum(PROJECT_TYPES),
+  status: z.enum(PROJECT_STATUSES),
   summary: z.string().min(10),
   description: z.string().min(10),
   lead_name: z.string().min(2),
