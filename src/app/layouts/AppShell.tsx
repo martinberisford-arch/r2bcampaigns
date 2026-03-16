@@ -71,7 +71,15 @@ export function AppShell() {
           </Button>
           <div>
             <p className="meta">Roots2Branches internal workspace</p>
-            <p className="topbar-route">{location.pathname === '/' ? 'Home' : location.pathname.replace('/', '').replace('-', ' ')}</p>
+            <p className="topbar-route">
+            {location.pathname === '/'
+              ? 'Home'
+              : location.pathname
+                  .slice(1)
+                  .split('/')
+                  .map((segment) => segment.replace(/-/g, ' '))
+                  .join(' › ')}
+          </p>
           </div>
         </header>
 
