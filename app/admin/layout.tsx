@@ -46,6 +46,12 @@ export default async function AdminLayout({
                 New Event
               </Link>
               <Link
+                href="/admin/upload"
+                className="text-gray-300 hover:text-white transition-colors"
+              >
+                Bulk Upload
+              </Link>
+              <Link
                 href="/admin/digest"
                 className="text-gray-300 hover:text-white transition-colors"
               >
@@ -72,6 +78,9 @@ export default async function AdminLayout({
         </Link>
         <Link href="/admin/events/new" className="text-gray-300 hover:text-white">
           New Event
+        </Link>
+        <Link href="/admin/upload" className="text-gray-300 hover:text-white">
+          Upload
         </Link>
         <Link href="/admin/digest" className="text-gray-300 hover:text-white">
           Digest
