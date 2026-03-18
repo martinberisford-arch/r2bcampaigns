@@ -77,10 +77,10 @@ export const EventCardSlide = React.forwardRef<HTMLDivElement, EventCardSlidePro
     return (
       <div
         ref={ref}
-        className="flex-shrink-0 w-72 bg-white border border-cwth-border rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
+        className="flex-shrink-0 w-72 bg-white border border-cwth-border rounded-2xl p-3.5 shadow-sm hover:shadow-md transition-shadow duration-200"
       >
         {/* Top row: time badge + delivery mode */}
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex justify-between items-center mb-2">
           <div className="flex items-center gap-2">
             {event.start_time ? (
               <span className="text-xs font-semibold text-cwth-teal bg-teal-50 px-2 py-0.5 rounded-md">
@@ -99,7 +99,7 @@ export const EventCardSlide = React.forwardRef<HTMLDivElement, EventCardSlidePro
         </div>
 
         {/* Category dot + title */}
-        <div className="flex items-start gap-2.5 mb-4">
+        <div className="flex items-start gap-2.5 mb-3">
           <span className={`mt-1 shrink-0 w-2.5 h-2.5 rounded-full ${accentDot}`} />
           <h3 className="text-sm font-semibold text-cwth-dark leading-snug line-clamp-2">
             {event.title}
@@ -107,7 +107,7 @@ export const EventCardSlide = React.forwardRef<HTMLDivElement, EventCardSlidePro
         </div>
 
         {/* Info grid — 3 fields like actual / forecast / prior */}
-        <div className="grid grid-cols-3 text-center text-xs border-t border-cwth-border pt-3 mb-3">
+        <div className="grid grid-cols-3 text-center text-xs border-t border-cwth-border pt-2 mb-2">
           {infoFields.map(({ label, value }) => (
             <div key={label}>
               <p className="text-cwth-mid-grey mb-1">{label}</p>

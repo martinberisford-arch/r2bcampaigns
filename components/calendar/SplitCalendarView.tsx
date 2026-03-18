@@ -40,7 +40,7 @@ function DayEventRow({ dateStr, events }: { dateStr: string; events: CalendarEve
   const isToday = dateStr === new Date().toISOString().split('T')[0]
 
   return (
-    <div className="mb-8" id={`day-${dateStr}`}>
+    <div className="mb-5" id={`day-${dateStr}`}>
       {/* Date header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -122,7 +122,7 @@ export default function SplitCalendarView({ events }: SplitCalendarViewProps) {
   return (
     <div className="flex gap-6 items-start">
       {/* ── Left: sticky mini calendar ── */}
-      <aside className="hidden lg:block w-64 shrink-0 sticky top-4">
+      <aside className="hidden lg:block w-80 shrink-0 sticky top-4">
         <MiniCalendar
           events={events}
           selectedDate={selectedDate}

@@ -20,18 +20,12 @@ export default function MiniCalendar({ events, selectedDate, onSelectDate }: Min
     return { year: d.getFullYear(), month: d.getMonth() }
   })
 
-  // Build set of dates that have events
-  const eventDates = new Set(events.map(e => e.event_date))
-
-  // Count events per date for the dot badge
   const eventCount: Record<string, number> = {}
   for (const e of events) {
     eventCount[e.event_date] = (eventCount[e.event_date] ?? 0) + 1
   }
 
-  // First day of the month (0 = Sun)
   const firstDay = new Date(cursor.year, cursor.month, 1)
-  // Offset so Monday = 0
   const startOffset = (firstDay.getDay() + 6) % 7
   const daysInMonth = new Date(cursor.year, cursor.month + 1, 0).getDate()
 
@@ -39,7 +33,6 @@ export default function MiniCalendar({ events, selectedDate, onSelectDate }: Min
     ...Array(startOffset).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ]
-  // Pad to complete last week
   while (cells.length % 7 !== 0) cells.push(null)
 
   const monthLabel = firstDay.toLocaleDateString('en-GB', {
@@ -68,20 +61,20 @@ export default function MiniCalendar({ events, selectedDate, onSelectDate }: Min
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-cwth-border p-4 shadow-sm select-none">
+    <div className="bg-white rounded-2xl border border-cwth-border p-5 shadow-sm select-none">
       {/* Month header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <button
           onClick={prevMonth}
-          className="p-1 rounded-lg hover:bg-cwth-light-blue text-cwth-mid-grey transition-colors"
+          className="p-1.5 rounded-lg hover:bg-cwth-light-blue text-cwth-mid-grey transition-colors"
           aria-label="Previous month"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <span className="text-sm font-semibold text-cwth-dark">{monthLabel}</span>
+        <span className="text-base font-bold text-cwth-dark">{monthLabel}</span>
         <button
           onClick={nextMonth}
-          className="p-1 rounded-lg hover:bg-cwth-light-blue text-cwth-mid-grey transition-colors"
+          className="p-1.5 rounded-lg hover:bg-cwth-light-blue text-cwth-mid-grey transition-colors"
           aria-label="Next month"
         >
           <ChevronRight className="h-4 w-4" />
@@ -91,61 +84,63 @@ export default function MiniCalendar({ events, selectedDate, onSelectDate }: Min
       {/* Day-of-week headers */}
       <div className="grid grid-cols-7 mb-1">
         {DAYS.map(d => (
-          <div key={d} className="text-center text-[10px] font-semibold text-cwth-mid-grey py-1">
+          <div key={d} className="text-center text-[11px] font-semibold text-cwth-mid-grey py-1">
             {d}
           </div>
         ))}
       </div>
 
       {/* Day cells */}
-      <div className="grid grid-cols-7 gap-y-0.5">
+      <div className="grid grid-cols-7 gap-y-1">
         {cells.map((day, i) => {
           if (!day) return <div key={`empty-${i}`} />
           const ds = dateStr(day)
           const isToday = ds === todayStr
           const isSelected = ds === selectedDate
-          const hasEvents = eventDates.has(ds)
           const count = eventCount[ds] ?? 0
+          const hasEvents = count > 0
+
+          // Layer priority: selected > has-events > today > plain
+          const cellCls = isSelected
+            ? 'bg-cwth-blue text-white ring-2 ring-cwth-blue ring-offset-1'
+            : hasEvents
+            ? 'bg-teal-50 text-cwth-dark ring-1 ring-cwth-teal hover:bg-teal-100'
+            : isToday
+            ? 'ring-2 ring-cwth-blue text-cwth-blue font-bold hover:bg-cwth-light-blue'
+            : 'hover:bg-gray-50 text-cwth-dark'
 
           return (
             <button
               key={ds}
               onClick={() => onSelectDate(isSelected ? null : ds)}
-              className={`
-                relative flex flex-col items-center justify-center h-8 w-full rounded-lg text-xs font-medium transition-colors
-                ${isSelected ? 'bg-cwth-blue text-white' : isToday ? 'bg-cwth-light-blue text-cwth-blue font-bold' : 'hover:bg-gray-50 text-cwth-dark'}
-              `}
+              className={`relative flex flex-col items-center justify-center h-10 w-full rounded-xl text-xs font-medium transition-all ${cellCls}`}
               aria-label={`${day} ${monthLabel}${hasEvents ? `, ${count} event${count > 1 ? 's' : ''}` : ''}`}
             >
-              {day}
+              <span className="leading-none">{day}</span>
               {hasEvents && (
                 <span
-                  className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full ${isSelected ? 'bg-white' : 'bg-cwth-teal'}`}
-                />
+                  className={`mt-0.5 text-[9px] font-bold leading-none ${
+                    isSelected ? 'text-white/80' : 'text-cwth-teal'
+                  }`}
+                >
+                  {count > 1 ? `×${count}` : '·'}
+                </span>
               )}
             </button>
           )
         })}
       </div>
 
-      {/* Legend */}
-      <div className="mt-3 pt-3 border-t border-cwth-border flex items-center gap-3 text-[10px] text-cwth-mid-grey">
-        <span className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-cwth-teal inline-block" /> Has events
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-cwth-blue inline-block" /> Selected
-        </span>
-      </div>
-
       {/* Clear selection */}
       {selectedDate && (
-        <button
-          onClick={() => onSelectDate(null)}
-          className="mt-2 w-full text-xs text-cwth-mid-grey hover:text-cwth-blue transition-colors"
-        >
-          Show all dates
-        </button>
+        <div className="mt-4 pt-3 border-t border-cwth-border">
+          <button
+            onClick={() => onSelectDate(null)}
+            className="w-full text-xs text-cwth-mid-grey hover:text-cwth-blue transition-colors"
+          >
+            ← Show all dates
+          </button>
+        </div>
       )}
     </div>
   )
