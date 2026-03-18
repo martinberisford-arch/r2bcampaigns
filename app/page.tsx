@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import Header from '@/components/shared/Header'
+import EventsHero from '@/components/calendar/EventsHero'
 import FilterBar from '@/components/calendar/FilterBar'
 import WeeklyView from '@/components/calendar/WeeklyView'
 import ListView from '@/components/calendar/ListView'
@@ -128,15 +129,18 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <main>
-        <Suspense
-          fallback={
-            <div className="flex items-center justify-center py-20">
-              <span className="text-cwth-mid-grey text-sm">Loading…</span>
-            </div>
-          }
-        >
-          <CalendarContent />
-        </Suspense>
+        <EventsHero />
+        <section id="calendar-section">
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center py-20">
+                <span className="text-cwth-mid-grey text-sm">Loading…</span>
+              </div>
+            }
+          >
+            <CalendarContent />
+          </Suspense>
+        </section>
       </main>
     </div>
   )
