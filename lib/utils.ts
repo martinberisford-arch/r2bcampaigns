@@ -1,6 +1,13 @@
 import { CalendarEvent } from './types'
 
 /**
+ * Merge class names (lightweight cn without tailwind-merge).
+ */
+export function cn(...classes: (string | undefined | null | false)[]): string {
+  return classes.filter(Boolean).join(' ')
+}
+
+/**
  * Format a date string (YYYY-MM-DD) to display format.
  * e.g. "Tuesday 25 March 2025"
  */

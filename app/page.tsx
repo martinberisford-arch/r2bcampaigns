@@ -6,13 +6,11 @@ import { Suspense } from 'react'
 import Header from '@/components/shared/Header'
 import EventsHero from '@/components/calendar/EventsHero'
 import FilterBar from '@/components/calendar/FilterBar'
-import WeeklyView from '@/components/calendar/WeeklyView'
-import ListView from '@/components/calendar/ListView'
+import SplitCalendarView from '@/components/calendar/SplitCalendarView'
 import { CalendarEvent } from '@/lib/types'
 
 function CalendarContent() {
   const searchParams = useSearchParams()
-  const [view, setView] = useState<'weekly' | 'list'>('weekly')
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -51,33 +49,7 @@ function CalendarContent() {
   return (
     <div>
       <FilterBar />
-
-      {/* View toggle */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex items-center gap-2 mb-6">
-          <span className="text-sm text-cwth-mid-grey font-medium mr-2">View:</span>
-          <button
-            onClick={() => setView('weekly')}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              view === 'weekly'
-                ? 'bg-cwth-blue text-white'
-                : 'border border-cwth-border text-cwth-dark hover:bg-cwth-light-blue'
-            }`}
-          >
-            Weekly
-          </button>
-          <button
-            onClick={() => setView('list')}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              view === 'list'
-                ? 'bg-cwth-blue text-white'
-                : 'border border-cwth-border text-cwth-dark hover:bg-cwth-light-blue'
-            }`}
-          >
-            List
-          </button>
-        </div>
-
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="flex items-center gap-3 text-cwth-mid-grey">
@@ -114,10 +86,8 @@ function CalendarContent() {
               Try again
             </button>
           </div>
-        ) : view === 'weekly' ? (
-          <WeeklyView events={events} />
         ) : (
-          <ListView events={events} />
+          <SplitCalendarView events={events} />
         )}
       </div>
     </div>
