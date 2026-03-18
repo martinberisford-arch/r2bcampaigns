@@ -1,28 +1,18 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import AdminLogoutButton from './LogoutButton'
 
 export const metadata: Metadata = {
   title: 'Admin — CWTH Events Calendar',
 }
 
-export default async function AdminLayout({
+// Auth is enforced by middleware.ts — no session check here to avoid
+// wrapping /admin/login in this layout and causing a redirect loop.
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const supabase = createClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  // Middleware handles the redirect, but add a fallback
-  if (!session) {
-    redirect('/admin/login')
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Admin header */}
