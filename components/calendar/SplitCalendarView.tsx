@@ -1,20 +1,109 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { CalendarDays } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { CalendarEvent } from '@/lib/types'
 import { EventCardSlide, itemVariants } from '@/components/ui/event-card-slide'
 import MiniCalendar from '@/components/calendar/MiniCalendar'
 import { formatDateLong } from '@/lib/utils'
 
-function groupByDate(events: CalendarEvent[]): Record<string, CalendarEvent[]> {
+// Groups events by date, returns sorted array of [dateStr, events[]] pairs
+function groupByDate(events: CalendarEvent[]): [string, CalendarEvent[]][] {
   const map: Record<string, CalendarEvent[]> = {}
   for (const e of events) {
     if (!map[e.event_date]) map[e.event_date] = []
     map[e.event_date].push(e)
   }
-  return map
+  return Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
+}
+
+// Horizontal scrollable row of event cards for a single day
+function DayEventRow({ dateStr, events }: { dateStr: string; events: CalendarEvent[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canLeft, setCanLeft] = useState(false)
+  const [canRight, setCanRight] = useState(events.length > 1)
+
+  function onScroll() {
+    const el = scrollRef.current
+    if (!el) return
+    setCanLeft(el.scrollLeft > 0)
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1)
+  }
+
+  function scroll(dir: 'left' | 'right') {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollBy({ left: dir === 'left' ? -288 : 288, behavior: 'smooth' })
+  }
+
+  const isToday = dateStr === new Date().toISOString().split('T')[0]
+
+  return (
+    <div className="mb-5" id={`day-${dateStr}`}>
+      {/* Date header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-cwth-teal" />
+          <h3 className="text-sm font-semibold text-cwth-dark">
+            {formatDateLong(dateStr)}
+          </h3>
+          {isToday && (
+            <span className="text-[10px] font-bold text-white bg-cwth-teal px-2 py-0.5 rounded-full">
+              TODAY
+            </span>
+          )}
+          <span className="text-xs text-cwth-mid-grey">
+            {events.length} event{events.length > 1 ? 's' : ''}
+          </span>
+        </div>
+        {/* Scroll controls — only when more than ~1 card fits */}
+        {events.length > 1 && (
+          <div className="flex gap-1">
+            <button
+              onClick={() => scroll('left')}
+              disabled={!canLeft}
+              className="p-1 rounded-full border border-cwth-border hover:bg-cwth-light-blue disabled:opacity-30 transition-colors"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="h-4 w-4 text-cwth-dark" />
+            </button>
+            <button
+              onClick={() => scroll('right')}
+              disabled={!canRight}
+              className="p-1 rounded-full border border-cwth-border hover:bg-cwth-light-blue disabled:opacity-30 transition-colors"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="h-4 w-4 text-cwth-dark" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Horizontally scrollable card row */}
+      <motion.div
+        variants={{
+          hidden: { opacity: 0 },
+          visible: { opacity: 1, transition: { staggerChildren: 0.08 } } as const,
+        }}
+        initial="hidden"
+        animate="visible"
+        className="relative"
+      >
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          className="flex gap-4 overflow-x-auto pb-2 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {events.map(event => (
+            <motion.div key={event.id} variants={itemVariants}>
+              <EventCardSlide event={event} />
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  )
 }
 
 interface SplitCalendarViewProps {
@@ -25,90 +114,72 @@ export default function SplitCalendarView({ events }: SplitCalendarViewProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
   const grouped = groupByDate(events)
-  const selectedEvents = selectedDate ? (grouped[selectedDate] ?? []) : []
 
-  // Default: show today's or the nearest upcoming date's events
-  const todayStr = new Date().toISOString().split('T')[0]
-  const defaultDate =
-    selectedDate ??
-    Object.keys(grouped)
-      .sort()
-      .find(d => d >= todayStr) ??
-    null
-
-  const displayedDate = selectedDate ?? defaultDate
-  const displayedEvents = displayedDate ? (grouped[displayedDate] ?? []) : []
+  const displayed = selectedDate
+    ? grouped.filter(([d]) => d === selectedDate)
+    : grouped
 
   return (
-    <div className="space-y-6">
-      {/* Calendar — centred, max width keeps it readable */}
-      <div className="flex justify-center">
-        <div className="w-full max-w-sm">
+    <div className="flex gap-6 items-start">
+      {/* ── Left: sticky mini calendar ── */}
+      <aside className="hidden lg:block w-80 shrink-0 sticky top-4">
+        <MiniCalendar
+          events={events}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+        />
+      </aside>
+
+      {/* ── Right: event groups ── */}
+      <div className="flex-1 min-w-0">
+        {/* Mobile: inline mini calendar (collapsed) */}
+        <div className="lg:hidden mb-6">
           <MiniCalendar
             events={events}
-            selectedDate={displayedDate}
-            onSelectDate={d => setSelectedDate(d === displayedDate ? null : d)}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
           />
         </div>
-      </div>
 
-      {/* Events for the selected / nearest date */}
-      <AnimatePresence mode="wait">
-        {displayedDate && (
-          <motion.div
-            key={displayedDate}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-          >
-            {/* Section header */}
-            <div className="flex items-center gap-2 mb-4">
-              <CalendarDays className="h-4 w-4 text-cwth-teal" />
-              <h3 className="text-sm font-semibold text-cwth-dark">
-                {formatDateLong(displayedDate)}
-              </h3>
-              {displayedDate === todayStr && (
-                <span className="text-[10px] font-bold text-white bg-cwth-teal px-2 py-0.5 rounded-full">
-                  TODAY
-                </span>
+        <AnimatePresence mode="wait">
+          {displayed.length === 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-24 text-center"
+            >
+              <CalendarDays className="h-10 w-10 text-cwth-border mb-4" />
+              <p className="text-cwth-mid-grey text-sm">
+                {selectedDate
+                  ? `No events on ${formatDateLong(selectedDate)}`
+                  : 'No upcoming events found.'}
+              </p>
+              {selectedDate && (
+                <button
+                  onClick={() => setSelectedDate(null)}
+                  className="mt-3 text-xs text-cwth-blue underline"
+                >
+                  Show all dates
+                </button>
               )}
-              <span className="text-xs text-cwth-mid-grey">
-                {displayedEvents.length} event{displayedEvents.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-
-            {displayedEvents.length === 0 ? (
-              <p className="text-sm text-cwth-mid-grey">No events on this date.</p>
-            ) : (
-              <motion.div
-                className="flex flex-wrap gap-4"
-                variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.07 } } } as const}
-                initial="hidden"
-                animate="visible"
-              >
-                {displayedEvents.map(event => (
-                  <motion.div key={event.id} variants={itemVariants}>
-                    <EventCardSlide event={event} />
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-          </motion.div>
-        )}
-
-        {!displayedDate && (
-          <motion.div
-            key="empty"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center py-12 text-center"
-          >
-            <CalendarDays className="h-8 w-8 text-cwth-border mb-3" />
-            <p className="text-sm text-cwth-mid-grey">Select a date to see events.</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={selectedDate ?? 'all'}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              {displayed.map(([dateStr, dayEvents]) => (
+                <DayEventRow key={dateStr} dateStr={dateStr} events={dayEvents} />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }
