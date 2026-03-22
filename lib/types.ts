@@ -50,6 +50,29 @@ export const CATEGORIES: EventCategory[] = [
 
 export const DELIVERY_MODES: DeliveryMode[] = ['In Person', 'Online', 'Hybrid']
 
+// Staff role filter options — used in FilterBar and for digest grouping
+export const ROLES = [
+  'All Staff',
+  'GP',
+  'GPNs',
+  'GPAs',
+  'PAs',
+  'Paramedics',
+  'OTs',
+  'Dietitians',
+  'Care Coordinators',
+  'Administration and Clerical',
+  'Clinical Pharmacists',
+  'FCPs',
+  'Health and Wellbeing Coaches',
+  'Healthcare Assistants',
+  'Pharmacy Technicians',
+  'Podiatrists',
+  'Practice Managers',
+  'Social Prescribing Link Workers',
+  'Internal CWTH Event',
+] as const
+
 export const CATEGORY_COLOURS: Record<string, string> = {
   'Training & Education': 'bg-blue-100 text-blue-800',
   'Clinical Development': 'bg-teal-100 text-teal-800',

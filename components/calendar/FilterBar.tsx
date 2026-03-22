@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { CATEGORIES, DELIVERY_MODES } from '@/lib/types'
+import { CATEGORIES, DELIVERY_MODES, ROLES } from '@/lib/types'
 
 const MONTHS = [
   { value: '1', label: 'January' },
@@ -51,15 +51,44 @@ export default function FilterBar() {
     })
   }
 
+  const activeRole = searchParams.get('role') ?? ''
   const hasFilters =
     searchParams.get('category') ||
     searchParams.get('delivery_mode') ||
     searchParams.get('month') ||
-    searchParams.get('q')
+    searchParams.get('q') ||
+    activeRole
 
   return (
     <div className="bg-white border-b border-cwth-border shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
+
+        {/* ── Role filter — primary, full-width row ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <label
+            htmlFor="filter-role"
+            className="text-xs font-bold text-cwth-dark uppercase tracking-wide whitespace-nowrap"
+          >
+            Filter by role
+          </label>
+          <select
+            id="filter-role"
+            value={activeRole}
+            onChange={e => updateParams('role', e.target.value === 'All Staff' ? '' : e.target.value)}
+            className="h-9 rounded-md border-2 border-cwth-teal bg-white px-3 text-sm font-medium text-cwth-dark focus:outline-none focus:ring-2 focus:ring-cwth-teal sm:w-72"
+          >
+            {ROLES.map(r => (
+              <option key={r} value={r === 'All Staff' ? '' : r}>
+                {r}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-cwth-mid-grey sm:ml-2">
+            Select your staff group to see the most relevant opportunities.
+          </p>
+        </div>
+
+        {/* ── Secondary filters ── */}
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4">
           {/* Category */}
           <div className="flex flex-col gap-1">
@@ -90,7 +119,7 @@ export default function FilterBar() {
               htmlFor="filter-mode"
               className="text-xs font-semibold text-cwth-mid-grey uppercase tracking-wide"
             >
-              Delivery Mode
+              Format
             </label>
             <select
               id="filter-mode"
@@ -98,7 +127,7 @@ export default function FilterBar() {
               onChange={e => updateParams('delivery_mode', e.target.value)}
               className="h-9 rounded-md border border-cwth-border bg-white px-3 text-sm text-cwth-dark focus:outline-none focus:ring-2 focus:ring-cwth-teal"
             >
-              <option value="">All Modes</option>
+              <option value="">All Formats</option>
               {DELIVERY_MODES.map(m => (
                 <option key={m} value={m}>
                   {m}
@@ -165,7 +194,7 @@ export default function FilterBar() {
               onClick={handleReset}
               className="h-9 px-4 text-sm text-cwth-mid-grey border border-cwth-border rounded-md hover:bg-gray-50 transition-colors whitespace-nowrap"
             >
-              Reset filters
+              Clear all filters
             </button>
           )}
         </div>

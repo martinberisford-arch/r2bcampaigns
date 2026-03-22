@@ -24,10 +24,12 @@ function CalendarContent() {
       const delivery_mode = searchParams.get('delivery_mode')
       const month = searchParams.get('month')
       const q = searchParams.get('q')
+      const role = searchParams.get('role')
       if (category) params.set('category', category)
       if (delivery_mode) params.set('delivery_mode', delivery_mode)
       if (month) params.set('month', month)
       if (q) params.set('q', q)
+      if (role) params.set('role', role)
 
       const res = await fetch(`/api/events?${params.toString()}`, {
         cache: 'no-store',
@@ -79,6 +81,9 @@ function CalendarContent() {
         ) : error ? (
           <div className="text-center py-16">
             <p className="text-red-600 text-base mb-2">{error}</p>
+            <p className="text-xs text-cwth-mid-grey mb-4">
+              If you are on a restricted NHS network, please check your connection or contact your IT support.
+            </p>
             <button
               onClick={fetchEvents}
               className="text-sm text-cwth-blue underline"

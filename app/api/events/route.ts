@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
   const delivery_mode = searchParams.get('delivery_mode')
   const month = searchParams.get('month')
   const q = searchParams.get('q')
+  const role = searchParams.get('role')
 
   try {
     const supabase = createClient()
@@ -40,6 +41,10 @@ export async function GET(request: NextRequest) {
         .toISOString()
         .split('T')[0]
       query = query.gte('event_date', startDate).lte('event_date', endDate)
+    }
+    // Role filter: match against the target_audience free-text field
+    if (role) {
+      query = query.ilike('target_audience', `%${role}%`)
     }
     if (q) {
       query = query.or(
