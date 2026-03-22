@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { CalendarEvent } from '@/lib/types'
 import { EventCardSlide, itemVariants } from '@/components/ui/event-card-slide'
 import MiniCalendar from '@/components/calendar/MiniCalendar'
+import EventModal from '@/components/calendar/EventModal'
 import { formatDateLong } from '@/lib/utils'
 
 // Groups events by date, returns sorted array of [dateStr, events[]] pairs
@@ -19,7 +20,7 @@ function groupByDate(events: CalendarEvent[]): [string, CalendarEvent[]][] {
 }
 
 // Horizontal scrollable row of event cards for a single day
-function DayEventRow({ dateStr, events }: { dateStr: string; events: CalendarEvent[] }) {
+function DayEventRow({ dateStr, events, onEventClick }: { dateStr: string; events: CalendarEvent[]; onEventClick: (e: CalendarEvent) => void }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canLeft, setCanLeft] = useState(false)
   const [canRight, setCanRight] = useState(events.length > 1)
@@ -97,7 +98,7 @@ function DayEventRow({ dateStr, events }: { dateStr: string; events: CalendarEve
         >
           {events.map(event => (
             <motion.div key={event.id} variants={itemVariants}>
-              <EventCardSlide event={event} />
+              <EventCardSlide event={event} onClick={() => onEventClick(event)} />
             </motion.div>
           ))}
         </div>
@@ -112,6 +113,7 @@ interface SplitCalendarViewProps {
 
 export default function SplitCalendarView({ events }: SplitCalendarViewProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null)
 
   const grouped = groupByDate(events)
 
@@ -120,6 +122,10 @@ export default function SplitCalendarView({ events }: SplitCalendarViewProps) {
     : grouped
 
   return (
+    <>
+    {activeEvent && (
+      <EventModal event={activeEvent} onClose={() => setActiveEvent(null)} />
+    )}
     <div className="flex gap-6 items-start">
       {/* ── Left: sticky mini calendar ── */}
       <aside className="hidden lg:block w-80 shrink-0 sticky top-4">
@@ -174,12 +180,13 @@ export default function SplitCalendarView({ events }: SplitCalendarViewProps) {
               transition={{ duration: 0.18 }}
             >
               {displayed.map(([dateStr, dayEvents]) => (
-                <DayEventRow key={dateStr} dateStr={dateStr} events={dayEvents} />
+                <DayEventRow key={dateStr} dateStr={dateStr} events={dayEvents} onEventClick={setActiveEvent} />
               ))}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
     </div>
+    </>
   )
 }

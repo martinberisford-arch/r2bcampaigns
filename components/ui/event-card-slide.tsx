@@ -51,10 +51,11 @@ export const itemVariants = {
 
 interface EventCardSlideProps {
   event: CalendarEvent
+  onClick?: () => void
 }
 
 export const EventCardSlide = React.forwardRef<HTMLDivElement, EventCardSlideProps>(
-  ({ event }, ref) => {
+  ({ event, onClick }, ref) => {
     const timeRange = formatTimeRange(event.start_time, event.end_time)
     const accentDot = CATEGORY_ACCENT[event.category] ?? 'bg-gray-400'
     const isCancelled = event.status === 'cancelled'
@@ -77,7 +78,11 @@ export const EventCardSlide = React.forwardRef<HTMLDivElement, EventCardSlidePro
     return (
       <div
         ref={ref}
-        className="flex-shrink-0 w-72 bg-white border border-cwth-border rounded-2xl p-3.5 shadow-sm hover:shadow-md transition-shadow duration-200"
+        onClick={onClick}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick() } : undefined}
+        className={`flex-shrink-0 w-72 bg-white border border-cwth-border rounded-2xl p-3.5 shadow-sm hover:shadow-md transition-shadow duration-200 ${onClick ? 'cursor-pointer' : ''}`}
       >
         {/* Top row: time badge + delivery mode */}
         <div className="flex justify-between items-center mb-2">
