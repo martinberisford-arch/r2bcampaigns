@@ -3,86 +3,149 @@
 import { useState } from 'react'
 import { CalendarEvent } from '@/lib/types'
 
-// Returns the Monday and Sunday of the current week as YYYY-MM-DD strings
-function getCurrentWeekBounds(): { start: string; end: string; label: string } {
+// Always targets NEXT week (Mon–Sun) — digest is prepared on Fridays for the week ahead
+function getNextWeekBounds(): { start: string; end: string; label: string } {
   const today = new Date()
-  const dayOfWeek = today.getDay() // 0 = Sun
+  const day = today.getDay() // 0 = Sun, 1 = Mon … 6 = Sat
+  // Days until next Monday: Sun→+1, Mon→+7, Tue→+6, Wed→+5, Thu→+4, Fri→+3, Sat→+2
+  const daysUntilMonday = day === 0 ? 1 : 8 - day
   const monday = new Date(today)
-  monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7))
+  monday.setDate(today.getDate() + daysUntilMonday)
   const sunday = new Date(monday)
   sunday.setDate(monday.getDate() + 6)
 
-  const fmt = (d: Date) => d.toISOString().split('T')[0]
-  const labelFmt = (d: Date) =>
+  const toISO = (d: Date) => d.toISOString().split('T')[0]
+  const toLabel = (d: Date) =>
     d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 
-  return { start: fmt(monday), end: fmt(sunday), label: labelFmt(monday) }
+  return { start: toISO(monday), end: toISO(sunday), label: toLabel(monday) }
 }
 
-// Format HH:MM:SS → HH:MM
+// HH:MM:SS → HH:MM
 function fmtTime(t: string | null | undefined) {
-  if (!t) return null
-  return t.slice(0, 5)
+  return t ? t.slice(0, 5) : null
 }
 
-// Format YYYY-MM-DD → "Monday 14 April"
+// YYYY-MM-DD → "Monday 14 April"
 function fmtDate(d: string) {
   return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
+    weekday: 'long', day: 'numeric', month: 'long',
   })
 }
 
-// Build a plain-text digest from a list of events grouped by date
+// Group events by date, return sorted entries
+function groupByDate(events: CalendarEvent[]): [string, CalendarEvent[]][] {
+  const map: Record<string, CalendarEvent[]> = {}
+  for (const e of events) {
+    if (!map[e.event_date]) map[e.event_date] = []
+    map[e.event_date].push(e)
+  }
+  return Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
+}
+
+// Build an HTML digest — inline styles so it pastes cleanly into Outlook
+function buildDigestHtml(events: CalendarEvent[], weekLabel: string): string {
+  const groups = groupByDate(events)
+
+  const TEAL = '#007b7b'
+  const DARK = '#1a2d45'
+  const MID  = '#6b7a8d'
+  const BORDER = '#e2e8f0'
+
+  const bodyContent = groups.length === 0
+    ? `<p style="color:${MID};font-size:14px;">No events scheduled for this week.</p>`
+    : groups.map(([date, evts]) => {
+        const eventRows = evts.map(e => {
+          const start = fmtTime(e.start_time)
+          const end   = fmtTime(e.end_time)
+          const timeStr = start ? (end ? `${start}–${end}` : start) : 'Time TBC'
+          const format = e.delivery_mode ?? (e.location ? 'In Person' : 'TBC')
+          const location = e.location ? ` — ${e.location}` : ''
+          const desc = e.description
+            ? (e.description.length > 160 ? e.description.slice(0, 157) + '…' : e.description)
+            : null
+
+          return `
+            <div style="margin-bottom:16px;padding:12px 14px;border:1px solid ${BORDER};border-left:4px solid ${TEAL};border-radius:4px;background:#ffffff;">
+              <p style="margin:0 0 6px 0;font-size:14px;font-weight:bold;color:${DARK};">${e.title}</p>
+              <table style="border-collapse:collapse;font-size:13px;color:${DARK};width:100%;">
+                <tr><td style="padding:1px 8px 1px 0;color:${MID};white-space:nowrap;">Time</td><td>${timeStr}</td></tr>
+                ${e.target_audience ? `<tr><td style="padding:1px 8px 1px 0;color:${MID};white-space:nowrap;">Audience</td><td>${e.target_audience}</td></tr>` : ''}
+                <tr><td style="padding:1px 8px 1px 0;color:${MID};white-space:nowrap;">Format</td><td>${format}${location}</td></tr>
+                ${desc ? `<tr><td style="padding:4px 8px 0 0;color:${MID};white-space:nowrap;vertical-align:top;">Summary</td><td style="padding-top:4px;">${desc}</td></tr>` : ''}
+                ${e.booking_url ? `<tr><td style="padding:4px 8px 0 0;color:${MID};white-space:nowrap;">Book</td><td style="padding-top:4px;"><a href="${e.booking_url}" style="color:${TEAL};">${e.booking_url}</a></td></tr>` : ''}
+              </table>
+            </div>`
+        }).join('')
+
+        return `
+          <div style="margin-top:24px;">
+            <h2 style="margin:0 0 10px 0;font-size:16px;font-weight:bold;color:${DARK};border-bottom:2px solid ${TEAL};padding-bottom:6px;">${fmtDate(date)}</h2>
+            ${eventRows}
+          </div>`
+      }).join('')
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:${DARK};max-width:640px;margin:0 auto;padding:16px;">
+  <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+    <tr>
+      <td>
+        <h1 style="margin:0;font-size:20px;font-weight:bold;color:${DARK};">
+          Weekly Training &amp; Events Digest
+        </h1>
+        <p style="margin:4px 0 0 0;font-size:13px;color:${MID};">Week commencing ${weekLabel}</p>
+      </td>
+    </tr>
+  </table>
+  <hr style="border:none;border-top:2px solid ${TEAL};margin-bottom:4px;">
+  ${bodyContent}
+  <hr style="border:none;border-top:1px solid ${BORDER};margin-top:32px;">
+  <p style="font-size:11px;color:${MID};margin-top:8px;">Generated by CWTH Events Calendar</p>
+</body></html>`
+}
+
+// Plain-text fallback for environments where HTML clipboard isn't supported
 function buildDigestText(events: CalendarEvent[], weekLabel: string): string {
-  if (events.length === 0) {
+  const groups = groupByDate(events)
+  if (groups.length === 0) {
     return `Weekly Training & Events Digest — w/c ${weekLabel}\n\nNo events scheduled for this week.`
   }
-
-  // Group by date
-  const byDate: Record<string, CalendarEvent[]> = {}
-  for (const e of events) {
-    if (!byDate[e.event_date]) byDate[e.event_date] = []
-    byDate[e.event_date].push(e)
-  }
-
-  const lines: string[] = [
-    `Weekly Training & Events Digest — w/c ${weekLabel}`,
-    `${'─'.repeat(50)}`,
-    '',
-  ]
-
-  for (const date of Object.keys(byDate).sort()) {
-    lines.push(fmtDate(date))
-    lines.push('─'.repeat(30))
-    for (const e of byDate[date]) {
+  const lines = [`Weekly Training & Events Digest — w/c ${weekLabel}`, '═'.repeat(50), '']
+  for (const [date, evts] of groups) {
+    lines.push(fmtDate(date).toUpperCase(), '─'.repeat(30))
+    for (const e of evts) {
       const start = fmtTime(e.start_time)
-      const end = fmtTime(e.end_time)
+      const end   = fmtTime(e.end_time)
       const timeStr = start ? (end ? `${start}–${end}` : start) : 'Time TBC'
       const format = e.delivery_mode ?? (e.location ? 'In Person' : 'TBC')
       const location = e.location ? ` — ${e.location}` : ''
-
       lines.push(`• ${e.title}`)
-      lines.push(`  Time: ${timeStr}`)
+      lines.push(`  Time:     ${timeStr}`)
       if (e.target_audience) lines.push(`  Audience: ${e.target_audience}`)
-      lines.push(`  Format: ${format}${location}`)
+      lines.push(`  Format:   ${format}${location}`)
       if (e.description) {
-        // Trim long descriptions to ~120 chars
-        const desc = e.description.length > 120
-          ? e.description.slice(0, 117) + '…'
-          : e.description
-        lines.push(`  Summary: ${desc}`)
+        const desc = e.description.length > 120 ? e.description.slice(0, 117) + '…' : e.description
+        lines.push(`  Summary:  ${desc}`)
       }
-      if (e.booking_url) lines.push(`  Book: ${e.booking_url}`)
+      if (e.booking_url) lines.push(`  Book:     ${e.booking_url}`)
       lines.push('')
     }
   }
-
-  lines.push('─'.repeat(50))
-  lines.push('Generated by CWTH Events Calendar')
-
+  lines.push('═'.repeat(50), 'Generated by CWTH Events Calendar')
   return lines.join('\n')
+}
+
+// Copy rich HTML + plain-text fallback to clipboard
+async function copyRichText(html: string, plain: string) {
+  if (typeof ClipboardItem !== 'undefined') {
+    const htmlBlob  = new Blob([html],  { type: 'text/html' })
+    const textBlob  = new Blob([plain], { type: 'text/plain' })
+    await navigator.clipboard.write([new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob })])
+  } else {
+    // Fallback for browsers without ClipboardItem (e.g. Firefox without flag)
+    await navigator.clipboard.writeText(plain)
+  }
 }
 
 type CopyState = 'idle' | 'loading' | 'copied' | 'empty' | 'error'
@@ -90,46 +153,34 @@ type CopyState = 'idle' | 'loading' | 'copied' | 'empty' | 'error'
 export default function DigestPanel() {
   const [copyState, setCopyState] = useState<CopyState>('idle')
   const [eventCount, setEventCount] = useState<number | null>(null)
-  const [digestText, setDigestText] = useState<string | null>(null)
+  const [digestHtml, setDigestHtml] = useState<string | null>(null)
+
+  const { label: nextWeekLabel } = getNextWeekBounds()
 
   async function handleGenerateAndCopy() {
     setCopyState('loading')
-    setDigestText(null)
+    setDigestHtml(null)
 
     try {
-      const { start, end, label } = getCurrentWeekBounds()
+      const { start, end, label } = getNextWeekBounds()
 
-      // Fetch only this week's published events
-      const params = new URLSearchParams()
-      // We'll fetch all and filter client-side since the API doesn't have date-range params
       const res = await fetch('/api/events', { cache: 'no-store' })
       if (!res.ok) throw new Error('Failed to fetch events')
 
-      const data = await res.json()
-      const allEvents: CalendarEvent[] = data.events ?? []
+      const allEvents: CalendarEvent[] = (await res.json()).events ?? []
 
-      // Filter to current week only
-      const weekEvents = allEvents.filter(
-        e => e.event_date >= start && e.event_date <= end
-      )
-
+      // Filter to next week only
+      const weekEvents = allEvents.filter(e => e.event_date >= start && e.event_date <= end)
       setEventCount(weekEvents.length)
 
-      if (weekEvents.length === 0) {
-        const text = buildDigestText([], label)
-        setDigestText(text)
-        await navigator.clipboard.writeText(text)
-        setCopyState('empty')
-        return
-      }
+      const html  = buildDigestHtml(weekEvents, label)
+      const plain = buildDigestText(weekEvents, label)
 
-      const text = buildDigestText(weekEvents, label)
-      setDigestText(text)
-      await navigator.clipboard.writeText(text)
-      setCopyState('copied')
+      setDigestHtml(html)
+      await copyRichText(html, plain)
 
-      // Reset after 4 seconds
-      setTimeout(() => setCopyState('idle'), 4000)
+      setCopyState(weekEvents.length === 0 ? 'empty' : 'copied')
+      setTimeout(() => setCopyState('idle'), 5000)
     } catch {
       setCopyState('error')
       setTimeout(() => setCopyState('idle'), 3000)
@@ -143,14 +194,20 @@ export default function DigestPanel() {
       <div className="bg-cwth-light-blue rounded-lg p-5 border border-blue-200">
         <h2 className="text-base font-bold text-cwth-dark mb-1">How it works</h2>
         <ol className="text-sm text-cwth-dark space-y-1 list-decimal list-inside">
-          <li>Click <strong>Generate Weekly Digest</strong> to compile this week&apos;s events.</li>
-          <li>The formatted digest is copied to your clipboard automatically.</li>
-          <li>Paste directly into Outlook or any email client and send manually.</li>
+          <li>Click <strong>Generate Weekly Digest</strong> — it pulls next week&apos;s events automatically.</li>
+          <li>The formatted digest is copied to your clipboard as rich text.</li>
+          <li>Paste directly into a new Outlook email — formatting will be preserved.</li>
+          <li>Review and send manually.</li>
         </ol>
         <p className="text-xs text-cwth-mid-grey mt-2">
-          This avoids NHS mailing list restrictions — the digest is generated entirely in your browser.
+          Generated entirely in your browser — no mailing list, no NHS email restrictions.
         </p>
       </div>
+
+      {/* Week label */}
+      <p className="text-sm text-cwth-mid-grey">
+        Will generate events for: <strong className="text-cwth-dark">w/c {nextWeekLabel}</strong>
+      </p>
 
       {/* Generate & Copy button */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -183,40 +240,44 @@ export default function DigestPanel() {
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
-            Weekly digest copied to clipboard — paste into Outlook to send.
+            Weekly digest copied — paste into Outlook to send.
           </span>
         )}
         {copyState === 'empty' && (
           <span className="text-sm text-cwth-mid-grey">
-            No events this week — empty digest copied to clipboard.
+            No events next week — empty digest copied to clipboard.
           </span>
         )}
         {copyState === 'error' && (
           <span className="text-sm text-red-600">
-            Could not copy to clipboard. Check your browser permissions.
+            Could not copy to clipboard. Check your browser permissions and try again.
           </span>
         )}
         {eventCount !== null && copyState === 'idle' && (
           <span className="text-sm text-cwth-mid-grey">
-            Last run: {eventCount} event{eventCount !== 1 ? 's' : ''} found this week.
+            Last run: {eventCount} event{eventCount !== 1 ? 's' : ''} found next week.
           </span>
         )}
       </div>
 
-      {/* Digest preview */}
-      {digestText && (
+      {/* HTML preview — rendered in a sandboxed iframe so it looks like the actual email */}
+      {digestHtml && (
         <div className="border border-cwth-border rounded-lg overflow-hidden">
           <div className="bg-gray-50 px-4 py-2 border-b border-cwth-border flex items-center justify-between">
             <span className="text-xs font-semibold text-cwth-mid-grey uppercase tracking-wide">
-              Digest Preview
+              Email Preview
             </span>
             <span className="text-xs text-cwth-mid-grey">
-              Plain text — paste directly into Outlook
+              Formatting is preserved when pasted into Outlook
             </span>
           </div>
-          <pre className="p-4 text-xs text-cwth-dark font-mono whitespace-pre-wrap leading-relaxed overflow-auto max-h-96 bg-white">
-            {digestText}
-          </pre>
+          <iframe
+            srcDoc={digestHtml}
+            title="Digest preview"
+            className="w-full bg-white"
+            style={{ height: '480px', border: 'none' }}
+            sandbox="allow-same-origin"
+          />
         </div>
       )}
     </div>

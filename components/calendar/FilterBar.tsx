@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { CATEGORIES, DELIVERY_MODES, ROLES } from '@/lib/types'
+import { DELIVERY_MODES, ROLES } from '@/lib/types'
 
 const MONTHS = [
   { value: '1', label: 'January' },
@@ -53,7 +53,6 @@ export default function FilterBar() {
 
   const activeRole = searchParams.get('role') ?? ''
   const hasFilters =
-    searchParams.get('category') ||
     searchParams.get('delivery_mode') ||
     searchParams.get('month') ||
     searchParams.get('q') ||
@@ -90,29 +89,6 @@ export default function FilterBar() {
 
         {/* ── Secondary filters ── */}
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4">
-          {/* Category */}
-          <div className="flex flex-col gap-1">
-            <label
-              htmlFor="filter-category"
-              className="text-xs font-semibold text-cwth-mid-grey uppercase tracking-wide"
-            >
-              Category
-            </label>
-            <select
-              id="filter-category"
-              value={searchParams.get('category') ?? ''}
-              onChange={e => updateParams('category', e.target.value)}
-              className="h-9 rounded-md border border-cwth-border bg-white px-3 text-sm text-cwth-dark focus:outline-none focus:ring-2 focus:ring-cwth-teal"
-            >
-              <option value="">All Categories</option>
-              {CATEGORIES.map(c => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Delivery Mode */}
           <div className="flex flex-col gap-1">
             <label
